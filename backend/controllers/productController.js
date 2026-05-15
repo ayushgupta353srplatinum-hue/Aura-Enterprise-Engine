@@ -1,25 +1,24 @@
 const Product = require("../models/Product");
+
+// CREATE PRODUCT
 const createProduct = async (req, res) => {
   try {
-
     const product = await Product.create(req.body);
 
     res.status(201).json({
       message: "Product Created Successfully",
       product,
     });
-
   } catch (error) {
-
     res.status(500).json({
       message: error.message,
     });
-
   }
 };
+
+// UPDATE PRODUCT
 const updateProduct = async (req, res) => {
   try {
-
     const updatedProduct = await Product.findByIdAndUpdate(
       req.params.id,
       req.body,
@@ -32,19 +31,82 @@ const updateProduct = async (req, res) => {
       message: "Product Updated Successfully",
       updatedProduct,
     });
-
   } catch (error) {
-
     res.status(500).json({
       message: error.message,
     });
-
   }
 };
+
+// DELETE PRODUCT
+const deleteProduct = async (req, res) => {
+  try {
+    await Product.findByIdAndDelete(req.params.id);
+
+    res.status(200).json({
+      message: "Product Deleted Successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+// GET PRODUCTS WITH PAGINATION + SEARCH + FILTER + SORT
+const getProducts = async (req, res) => {
+  try {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 50;
+
+    const skip = (page - 1) * limit;
+
+    const search = req.query.search || "";
+    const category = req.query.category || "";
+    const sort = req.query.sort || "-createdAt";
+
+    let query = {};
+
+    // SEARCH
+    if (search) {
+      query.productName = {
+        $regex: search,
+        $options: "i",
+      };
+    }
+
+    // CATEGORY FILTER
+    if (category) {
+      query.category = category;
+    }
+
+    const totalRecords = await Product.countDocuments(query);
+
+    const products = await Product.find(query)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit);
+
+    const totalPages = Math.ceil(totalRecords / limit);
+
+    res.status(200).json({
+      totalRecords,
+      totalPages,
+      currentPage: page,
+      hasNextPage: page < totalPages,
+      data: products,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+// ANALYTICS API
 const getAnalytics = async (req, res) => {
   try {
-
-    // Total Inventory Value + Total SKUs + Out Of Stock
+    // SUMMARY
     const summary = await Product.aggregate([
       {
         $group: {
@@ -69,7 +131,7 @@ const getAnalytics = async (req, res) => {
       },
     ]);
 
-    // Category Wise Valuation
+    // CATEGORY DISTRIBUTION
     const categoryDistribution = await Product.aggregate([
       {
         $group: {
@@ -92,7 +154,7 @@ const getAnalytics = async (req, res) => {
       },
     ]);
 
-    // Lowest Stock Products
+    // LOW STOCK PRODUCTS
     const lowStockProducts = await Product.find()
       .sort({ stockQuantity: 1 })
       .limit(10)
@@ -100,90 +162,8 @@ const getAnalytics = async (req, res) => {
 
     res.status(200).json({
       summary: summary[0],
-
       categoryDistribution,
-
       lowStockProducts,
-    });
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: error.message,
-    });
-
-  }
-};
-const deleteProduct = async (req, res) => {
-  try {
-
-    await Product.findByIdAndDelete(req.params.id);
-
-    res.status(200).json({
-      message: "Product Deleted Successfully",
-    });
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: error.message,
-    });
-
-  }
-};
-const getProducts = async (req, res) => {
-  try {
-    let {
-      page = 1,
-      limit = 50,
-      search = "",
-      category = "",
-      sort = "",
-    } = req.query;
-
-    page = Number(page);
-    limit = Number(limit);
-
-    const query = {};
-
-    // Search
-    if (search) {
-      query.$text = {
-        $search: search,
-      };
-    }
-
-    // Category Filter
-    if (category) {
-      query.category = category;
-    }
-
-    // Sorting
-    let sortOption = {};
-
-    if (sort) {
-      if (sort.startsWith("-")) {
-        sortOption[sort.substring(1)] = -1;
-      } else {
-        sortOption[sort] = 1;
-      }
-    }
-
-    const totalRecords = await Product.countDocuments(query);
-
-    const products = await Product.find(query)
-      .sort(sortOption)
-      .skip((page - 1) * limit)
-      .limit(limit);
-
-    const totalPages = Math.ceil(totalRecords / limit);
-
-    res.status(200).json({
-      totalRecords,
-      totalPages,
-      currentPage: page,
-      hasNextPage: page < totalPages,
-      data: products,
     });
   } catch (error) {
     res.status(500).json({
@@ -197,5 +177,5 @@ module.exports = {
   getAnalytics,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
 };
