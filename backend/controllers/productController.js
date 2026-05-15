@@ -64,21 +64,20 @@ const getProducts = async (req, res) => {
     const search = req.query.search || "";
     const category = req.query.category || "";
     const sort = req.query.sort || "-createdAt";
+let query = {};
 
-    let query = {};
+// SEARCH FILTER
+if (search && search.trim() !== "") {
+  query.productName = {
+    $regex: search,
+    $options: "i",
+  };
+}
 
-    // SEARCH
-    if (search) {
-      query.productName = {
-        $regex: search,
-        $options: "i",
-      };
-    }
-
-    // CATEGORY FILTER
-    if (category) {
-      query.category = category;
-    }
+// CATEGORY FILTER
+if (category && category.trim() !== "") {
+  query.category = category;
+}
 
     const totalRecords = await Product.countDocuments(query);
 

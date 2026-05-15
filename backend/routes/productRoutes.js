@@ -12,25 +12,16 @@ const {
 
 const validateProduct = require("../validations/productValidation");
 
+// Inventory Routes
 router.get("/inventory", getProducts);
 
+router.post("/inventory", validateProduct, createProduct);
+
+router.put("/inventory/:id", validateProduct, updateProduct);
+
+router.delete("/inventory/:id", deleteProduct);
+
+// Analytics Route
 router.get("/analytics", getAnalytics);
-
-router.post(
-  "/inventory",
-  validateProduct,
-  createProduct
-);
-
-router.put(
-  "/inventory/:id",
-  validateProduct,
-  updateProduct
-);
-
-router.delete(
-  "/inventory/:id",
-  deleteProduct
-);
 
 module.exports = router;
